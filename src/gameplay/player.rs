@@ -1,33 +1,46 @@
 use std::sync::Mutex;
 
 use bevy::{prelude::*, input::{keyboard, mouse::MouseMotion}, time::Time, window::{CursorMoved, CursorGrabMode, WindowFocused, PrimaryWindow}};
+use bevy_rapier3d::prelude::{Velocity, RigidBody, Collider};
 
 const SPEED: f32 = 10.0;
 const SENSITIVITY: f32 = 0.00005;
+const GRAVITY: f32 = 1.;
 
 pub fn player_movement(
-    mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
-    mut query: Query<&mut Transform, With<Camera>>,
+    primary_window: Query<&mut Window, With<PrimaryWindow>>,
+    mut query: Query<(&mut Velocity, &mut Transform, &RigidBody), With<Camera>>,
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
     mut motion_evr: EventReader<MouseMotion>,
 ) {
-    let mut camera = query.single_mut();
-    let forward = camera.rotation.mul_vec3(Vec3::new(0.0, 0.0, -1.0));
-    let right = camera.rotation.mul_vec3(Vec3::new(-1.0, 0.0, 0.0));
+    let (mut vel, mut camera, _body) = query.single_mut();
+    camera.translation += vel.linvel;
+    let mut forward = camera.rotation.mul_vec3(Vec3::NEG_Z);
+    let mut right = camera.rotation.mul_vec3(Vec3::new(-1.0, 0.0, 0.0));
+    forward.y = 0.;right.y = 0.;
+    let mut vector_direction = Vec3::ZERO;
     if keys.pressed(KeyCode::Z) { // Walk
-        // Get forward direction (negative z in camera space)
-        camera.translation += forward * SPEED * time.delta_seconds();
+        vector_direction += forward;
     }
     if keys.pressed(KeyCode::S) { // Walk backwards
-        camera.translation -= forward * SPEED * time.delta_seconds();
+        vector_direction -= forward;
     }
     if keys.pressed(KeyCode::D) { // Go right
-        camera.translation -= right * SPEED * time.delta_seconds();
+        vector_direction -= right;
     }
     if keys.pressed(KeyCode::Q) { // Go left
-        camera.translation += right * SPEED * time.delta_seconds();
+        vector_direction += right;
     }
+    if keys.pressed(KeyCode::Space) { // Go up
+        vector_direction += Vec3::Y;
+    }
+    if keys.pressed(KeyCode::ShiftLeft) { // Go down
+        vector_direction += Vec3::NEG_Y;
+    }
+    vel.linvel = vector_direction * SPEED * time.delta_seconds();
+    vel.linvel += Vec3::NEG_Y * GRAVITY * time.delta_seconds();
+    // vel.linvel = (vel.linvel + vector_direction).min(Vec3 { x: 3., y: 3., z: 3. });
     // mut state: ResMut<InputState>,
     let window = primary_window.single();
     for ev in motion_evr.iter() {

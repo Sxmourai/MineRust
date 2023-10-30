@@ -1,4 +1,5 @@
 use bevy::{prelude::*, utils::HashMap};
+use bevy_rapier3d::{prelude::{Velocity, Collider, Friction}, rapier::prelude::ColliderBuilder};
 use noise::{NoiseFn, Perlin, Seedable};
 
 type BlocPosition = (i64, u16, i64);
@@ -31,18 +32,10 @@ pub fn generate_world(
     for x in 0..CHUNK_SIZE*CHUNKS {
         for z in 0..CHUNK_SIZE*CHUNKS {
             let height = (perlin.get([x as f64 / (CHUNK_SIZE*2+1) as f64,z as f64 / (CHUNK_SIZE*2+1) as f64])*100.).round().abs();
-            for y in 0..height as i64 {
+            for y in 0..=height as i64 {
                 let pos = (x as i64, y as u16, z as i64);
                 world.0.insert(pos, Bloc::new(pos));
             }
-            let visibility = Visibility::Visible;
-            commands.spawn(PbrBundle {
-                mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-                material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-                transform: Transform::from_xyz(x as f32, height as f32, z as f32),
-                visibility,
-                ..default()
-            });
         }
     }
     for (pos, _bloc) in world.0.iter() {
@@ -53,7 +46,10 @@ pub fn generate_world(
                 material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
                 transform: Transform::from_xyz(x as f32, y as f32, z as f32),
                 ..default()
-            });
+            })
+            .insert(bevy_rapier3d::prelude::RigidBody::Fixed)
+            .insert(Friction::coefficient(0.7))
+            .insert(Collider::cuboid(0.5, 0.5, 0.5)); // Cube dimensions
         }
     }
 }
@@ -63,16 +59,16 @@ fn is_bloc_visible(pos: BlocPosition, world: &WorldMap) -> bool {
         (x + 1, y, z),
         (x - 1, y, z),
         (x, y + 1, z),
-        // (x, y - 1, z),
+        // (x, y - 1, z), Buffer underflow when y = 0
         (x, y, z + 1),
         (x, y, z - 1),
     ];
     for &(nx, ny, nz) in &neighbors {
         if !world.0.contains_key(&(nx,ny,nz)) {
-            return true; // Le voisin n'est pas présent
+            return true;
         }
     }
-    if y > 0 && !world.0.contains_key(&(x, y - 1, z)) {
+    if (y > 0 && !world.0.contains_key(&(x, y - 1, z))) || y == 0 {
         return true;
     }
     return false;

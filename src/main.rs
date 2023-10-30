@@ -2,6 +2,9 @@ use bevy::{prelude::*, app::Startup, DefaultPlugins, asset::ChangeWatcher, windo
 mod setup;
 mod gameplay;
 mod world;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_inspector_egui_rapier::InspectableRapierPlugin;
+use bevy_rapier3d::{prelude::{NoUserData, RapierConfiguration}, render::RapierDebugRenderPlugin};
 use gameplay::player::*;
 use setup::setup;
 use world::{generate_world, WorldMap};
@@ -18,6 +21,14 @@ fn main() {
         }),
         ..default()
     }),)
+    .add_plugins(bevy_rapier3d::prelude::RapierPhysicsPlugin::<NoUserData>::default())
+    .add_plugins(RapierDebugRenderPlugin::default())
+    .insert_resource(RapierConfiguration {
+        gravity: Vec3::ZERO,
+        ..default()
+    })
+    // .add_plugin(bevy_inspector_egui_rapier::InspectableRapierPlugin)
+    .add_plugins(WorldInspectorPlugin::default())
     .add_systems(Startup, setup)
     .add_systems(Startup, generate_world)
     .add_systems(Update, player_movement)
