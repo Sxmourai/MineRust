@@ -1,10 +1,31 @@
 
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::{Velocity, Collider, Restitution, LockedAxes, Friction, Ccd};
+use bevy_rapier3d::prelude::{Velocity, Collider, Restitution, LockedAxes, Friction, Ccd, MassProperties, ExternalForce, Damping, ExternalImpulse, KinematicCharacterController, RigidBody, CollisionGroups, Group};
+use noise::NoiseFn;
+
+use crate::{world::{World, generate_world, BlocPosition}, gameplay::player::PlayerVelocity};
+#[derive(Component, Default)]
+pub struct Player {
+    pub name: String,
+    pub on_ground: bool,
+}
+#[derive(Component)]
+pub struct CameraTag;
+impl Player {
+    pub fn new() -> Self {
+        Self { 
+            name: "Sxmourai".to_string(), 
+            ..default()
+        }
+    }
+}
+
 pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+    asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    mut world: ResMut<World>,
 ) {
     // Sun
     commands.spawn(PointLightBundle {
@@ -13,37 +34,52 @@ pub fn setup(
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(0., 0., 10.),
+        transform: Transform::from_xyz(0., 20., 0.),
         ..default()
     });
-    // camera
-    let (cx,cy,cz) = (0.,20.,0.);
-    let player_height = 1.75; 
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(cx,cy+player_height,cz).looking_at(Vec3::new(20., 5., 20.), Vec3::Y),
+
+    let (cx,cz) = (5.,5.);
+    let cy = world.get_height_at(cx, cz)+20.;
+    let player_height = 1.75;
+    let camera_bundle = Camera3dBundle {
+        transform: Transform::from_xyz(0., 0., 0.).looking_at(Vec3::new(20., 5., 20.), Vec3::Y),
+        projection: Projection::Perspective(PerspectiveProjection { fov: 89., ..default()}),
         ..default()
-    });
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Box::new(1.0, player_height, 1.0))),
-        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-        transform: Transform::from_xyz(cx,cy,cz),
-        ..default()
-    })
-    .insert(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Box::new(1., 2., 1.) )),
-        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-        transform: Transform::from_xyz(-5., 50., -5.),
-        ..default()
-    })
-    .insert(bevy_rapier3d::prelude::RigidBody::Dynamic)            
-    .insert(Velocity {
-        linvel: Vec3::new(0.0, 0.0, 0.0),
-        angvel: Vec3::new(0.0, 0.0, 0.0),
-    })
-    .insert(Friction::coefficient(0.7))
+    };
+    let camera = &camera_bundle.camera.clone();
+    commands.spawn(camera_bundle).insert(CameraTag);
+    println!("Spawning player ({}, {}, {})", cx,cy,cz);
+    let transform = Transform::from_xyz(cx as f32, cy as f32, cz as f32);
+    // ----------------------- Creating player
+    let _player_id = commands
+    .spawn(TransformBundle::from_transform(transform))
+    .insert(Collider::cuboid(0.3, player_height/2., 0.2))
+    // TODO Collision groups
+    // .insert(KinematicCharacterController {
+    //     offset: bevy_rapier3d::prelude::CharacterLength::Absolute(1.0),
+    //     ..default()
+    // })
+    .insert(RigidBody::Dynamic)
+    .insert(Friction::coefficient(0.0))
     .insert(Restitution::coefficient(0.))
+    .insert(Damping {
+        linear_damping: 0.0,
+        ..default()
+    })
     .insert(LockedAxes::ROTATION_LOCKED)
-    .insert(Collider::cuboid(0.7, 1.4, 0.7)); // Player dimensions
-
-
+    .insert(Player::new())
+    .insert(Ccd::enabled())
+    .insert(ExternalImpulse {
+        impulse: Vec3::Y * 0.,
+        ..default()
+    })
+    .insert(ExternalForce {
+        force: Vec3::ZERO,
+        ..default()
+    })
+    .insert(Velocity::default())
+    .insert(PlayerVelocity::default())
+    .id()
+    ;
+    world.setup(commands, meshes, asset_server, materials, &transform, camera);
 }

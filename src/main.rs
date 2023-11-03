@@ -1,13 +1,13 @@
-use bevy::{prelude::*, app::Startup, DefaultPlugins, asset::ChangeWatcher, window::{Window, WindowPosition}, utils::HashMap};
+use bevy::{prelude::*, app::Startup, DefaultPlugins, window::{Window, WindowPosition}, utils::HashMap};
 mod setup;
 mod gameplay;
 mod world;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_inspector_egui_rapier::InspectableRapierPlugin;
 use bevy_rapier3d::{prelude::{NoUserData, RapierConfiguration}, render::RapierDebugRenderPlugin};
 use gameplay::player::*;
 use setup::setup;
-use world::{generate_world, WorldMap};
+use world::{World, optimise_world, generate_world};
+use bevy_rapier3d::prelude::*;
 
 fn main() {
     App::new()
@@ -15,31 +15,43 @@ fn main() {
         primary_window: Some(Window {
             title: "MineRust".into(),
             resolution: (900., 1080.).into(),
-            position: WindowPosition::At(IVec2::new(1000, 0)),
+            position: WindowPosition::At(IVec2::new(0, 0)),
 
             ..default()
         }),
         ..default()
     }),)
+//     .add_plugins(bevy_editor_pls::prelude::EditorPlugin::default())
     .add_plugins(bevy_rapier3d::prelude::RapierPhysicsPlugin::<NoUserData>::default())
-    .add_plugins(RapierDebugRenderPlugin::default())
+//     .add_plugins((
+//         // it is fast unless debug rendering it on, it is too many lines so im only going to show the
+//         // AABB not the acctual shape for now
+//         RapierDebugRenderPlugin {
+//             mode: DebugRenderMode::empty(),
+//             ..Default::default()
+//         },
+//         bevy::diagnostic::FrameTimeDiagnosticsPlugin,
+//         bevy::diagnostic::EntityCountDiagnosticsPlugin,
+//         // bevy_diagnostics_explorer::DiagnosticExplorerAgentPlugin,
+//     ))
+//     .insert_resource(RapierConfiguration {
+//     gravity: Vec3::ZERO,
+//     ..default()
+// })
+//     // .add_plugin(bevy_inspector_egui_rapier::InspectableRapierPlugin)
+    // .add_plugins(WorldInspectorPlugin::default()) // Laggy
     .insert_resource(RapierConfiguration {
-        gravity: Vec3::ZERO,
+        gravity: Vec3::new(0.0, 0., 0.0),
         ..default()
     })
-    // .add_plugin(bevy_inspector_egui_rapier::InspectableRapierPlugin)
-    .add_plugins(WorldInspectorPlugin::default())
     .add_systems(Startup, setup)
-    .add_systems(Startup, generate_world)
-    .add_systems(Update, player_movement)
     .add_systems(Update, cursor_grab_system)
-    .insert_resource(WorldMap(HashMap::new()))
-    // .insert_resource(WindowDescriptor {
-    //     title: "MineRust".to_string(),
-    //     width: 640.0,
-    //     height: 400.0,
-    //     vsync: true,
-    //     ..Default::default()
-    // })
+    .add_systems(Update, player_movement)
+    // .add_systems(Startup, generate_world.after(setup)) // Reput .after (playermovement)
+    .add_systems(Update,optimise_world.after(player_movement))
+    .add_systems(Update,player_on_ground.before(player_movement))
+    
+    .insert_resource(World::new(1))
+    .insert_resource(JumpTimer(Timer::from_seconds(0.3, TimerMode::Once)))
     .run();
 }
