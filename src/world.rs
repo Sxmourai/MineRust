@@ -2,7 +2,7 @@ use bevy::{prelude::*, utils::{HashMap, HashSet}};
 use bevy_rapier3d::{prelude::{Velocity, Collider, Friction, Sleeping, Restitution, KinematicCharacterController}, rapier::prelude::ColliderBuilder};
 use noise::{NoiseFn, Perlin};
 
-use crate::setup::Player;
+use crate::Player;
 
 pub type BlocPosition = IVec3;
 #[derive(Component, Debug)]

@@ -3,22 +3,8 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::{Velocity, Collider, Restitution, LockedAxes, Friction, Ccd, MassProperties, ExternalForce, Damping, ExternalImpulse, KinematicCharacterController, RigidBody, CollisionGroups, Group};
 use noise::NoiseFn;
 
-use crate::{world::{World, generate_world, BlocPosition}, gameplay::player::PlayerVelocity};
-#[derive(Component, Default)]
-pub struct Player {
-    pub name: String,
-    pub on_ground: bool,
-}
-#[derive(Component)]
-pub struct CameraTag;
-impl Player {
-    pub fn new() -> Self {
-        Self { 
-            name: "Sxmourai".to_string(), 
-            ..default()
-        }
-    }
-}
+use crate::{world::{World, generate_world, BlocPosition}, gameplay::player::{PlayerVelocity, Player}, camera::CameraTag};
+
 
 pub fn setup(
     mut commands: Commands,
@@ -39,7 +25,7 @@ pub fn setup(
     });
 
     let (cx,cz) = (5.,5.);
-    let cy = world.get_height_at(cx, cz)+20.;
+    let cy = world.get_height_at(cx, cz)+2.;
     let player_height = 1.75;
     let camera_bundle = Camera3dBundle {
         transform: Transform::from_xyz(0., 0., 0.).looking_at(Vec3::new(20., 5., 20.), Vec3::Y),
@@ -78,7 +64,6 @@ pub fn setup(
         ..default()
     })
     .insert(Velocity::default())
-    .insert(PlayerVelocity::default())
     .id()
     ;
     world.setup(commands, meshes, asset_server, materials, &transform, camera);

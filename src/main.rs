@@ -1,7 +1,8 @@
 use bevy::{prelude::*, app::Startup, DefaultPlugins, window::{Window, WindowPosition}, utils::HashMap};
-mod setup;
-mod gameplay;
-mod world;
+pub mod setup;
+pub mod gameplay;
+pub mod world;
+pub mod camera;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::{prelude::{NoUserData, RapierConfiguration}, render::RapierDebugRenderPlugin};
 use gameplay::player::*;
