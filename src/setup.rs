@@ -11,11 +11,11 @@ pub fn setup(
     // Sun
     commands.spawn(PointLightBundle {
         point_light: PointLight {
-            intensity: 1500.0,
+            intensity: 15000.0,
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(0., 20., 0.),
+        transform: Transform::from_xyz(10., 10., 10.),
         ..default()
     });
 

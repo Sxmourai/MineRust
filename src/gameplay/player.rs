@@ -17,6 +17,7 @@ pub struct Player {
     pub speed: f32,
     pub max_speed: f32,
     pub height: f32,
+    pub render_distance: i32,
 }
 impl Player {
     pub fn new() -> Self {
@@ -27,6 +28,7 @@ impl Player {
             speed: 1.0,
             max_speed: 5.0,
             height: 1.75,
+            render_distance: 2,
             ..default()
         }
     }

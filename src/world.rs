@@ -4,6 +4,7 @@ use noise::{NoiseFn, Perlin};
 
 use crate::{Player, bloc::{BlocPosition, Bloc}};
 
+const CHUNK_SIZE: usize = 16;
 #[derive(Resource, Default)]
 pub struct World {
     pub map: HashMap<BlocPosition, Bloc>,
@@ -24,7 +25,6 @@ impl World {
         return (self.perlin.get([x / (CHUNK_SIZE*8+1) as f64,z / (CHUNK_SIZE*8+1) as f64])*20.).round().abs();
     }
     pub fn generate(&mut self, 
-        _player_transform: &Transform,
         commands: &mut Commands,
         meshes: &mut ResMut<Assets<Mesh>>,
         asset_server: &Res<AssetServer>,
@@ -35,7 +35,7 @@ impl World {
         let material = materials.add(StandardMaterial {
             base_color_texture: Some(texture_handle.clone()),
             // alpha_mode: AlphaMode::Blend,
-            unlit: true,
+            // unlit: true,
             ..default()
         });
         let mut entities = Vec::new();
@@ -72,31 +72,75 @@ impl World {
         mut materials: ResMut<Assets<StandardMaterial>>,
         player_transform: &Transform
     ) {
-        for x in 0..CHUNK_SIZE*CHUNKS {
-            for z in 0..CHUNK_SIZE*CHUNKS {
+        for x in 0..CHUNK_SIZE*2 {
+            for z in 0..CHUNK_SIZE*2 {
                 for y in 0..=self.get_height_at(x as f64, z as f64) as i64 {
                     let pos = BlocPosition::new(x as i32, y as i32, z as i32);
                     self.map.insert(pos, Bloc::new(pos, None));
                 }
             }
         }
-        self.generate(player_transform, &mut commands, &mut meshes, &asset_server, &mut materials);
+        self.generate(&mut commands, &mut meshes, &asset_server, &mut materials);
     }
 }
 
-const CHUNK_SIZE: usize = 32;
-const CHUNKS: usize = 4;
 
-pub fn generate_world(
-    commands: Commands,
-    meshes: ResMut<Assets<Mesh>>,
+pub fn gen_world(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
-    materials: ResMut<Assets<StandardMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut world: ResMut<World>,
-    camera_query: Query<&Transform, With<Player>>,
+    player_pos: Query<&Transform, With<Player>>,
 ) {
-    let pos = camera_query.single();
-    world.setup(commands, meshes, asset_server, materials, pos);
+    let pos = player_pos.single();
+    let mix = pos.translation.x as isize-CHUNK_SIZE as isize;
+    let max = pos.translation.x as isize+CHUNK_SIZE as isize;
+    let miz = pos.translation.z as isize-CHUNK_SIZE as isize;
+    let maz = pos.translation.z as isize+CHUNK_SIZE as isize;
+    for x in mix..max {
+        for z in miz..maz {
+            for y in 0..=world.get_height_at(x as f64, z as f64) as i64 {
+                let pos = BlocPosition::new(x as i32, y as i32, z as i32);
+                world.map.insert(pos, Bloc::new(pos, None));
+            }
+        }
+    }
+
+    let texture_handle = asset_server.load("minecraft/textures/block/dirt.png");
+    let cube = meshes.add(Mesh::from(shape::Cube { size: 1.0 }));
+    let material = materials.add(StandardMaterial {
+        base_color_texture: Some(texture_handle.clone()),
+        // alpha_mode: AlphaMode::Blend,
+        // unlit: true,
+        ..default()
+    });
+    let mut entities = Vec::new();
+    for (pos, _bloc) in world.map.iter() {
+        if is_bloc_at_surface(*pos, &world) {
+            if let Some(bloc) = world.map.get(pos) {
+                if bloc.id.is_some() {continue} // Check if already spawned
+            }
+            let mut bundle = commands.spawn(PbrBundle {
+                mesh: cube.clone(),
+                material: material.clone(),
+                transform: Transform::from_xyz(pos.x as f32, pos.y as f32, pos.z as f32),
+                ..default()
+            });
+            let entity = bundle
+            .insert(bevy_rapier3d::prelude::RigidBody::Fixed)
+            .insert(Friction::coefficient(0.0))
+            .insert(Restitution::coefficient(0.))
+            // .insert(Sleeping {sleeping:false,..default()})
+            // .insert(Collider::cuboid(0.5, 0.5, 0.5)) // Cube dimensions
+            ;
+            entities.push((*pos, entity.id()));
+        }
+    }
+    for (pos, entity) in entities {
+        world.map.get_mut(&pos).unwrap().id = Some(entity);
+        world.entities.insert(entity, pos);
+    }
 }
 fn is_bloc_at_surface(pos: BlocPosition, world: &World) -> bool {
     let (x,y,z) = (pos.x, pos.y, pos.z);
