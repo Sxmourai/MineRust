@@ -1,4 +1,4 @@
-use bevy::{prelude::*, app::Startup, DefaultPlugins, window::{Window, WindowPosition}};
+use bevy::{prelude::*, app::Startup, DefaultPlugins, window::{Window, WindowPosition}, log::LogPlugin};
 pub mod setup;
 pub mod gameplay;
 pub mod world;
@@ -22,7 +22,8 @@ fn main() {
             ..default()
         }),
         ..default()
-    }),)
+    }).disable::<LogPlugin>(),)
+    
 //     .add_plugins(bevy_editor_pls::prelude::EditorPlugin::default())
     .add_plugins(bevy_rapier3d::prelude::RapierPhysicsPlugin::<NoUserData>::default())
     .add_plugins((
@@ -34,7 +35,7 @@ fn main() {
         },
         bevy::diagnostic::FrameTimeDiagnosticsPlugin,
         bevy::diagnostic::EntityCountDiagnosticsPlugin,
-        // bevy_diagnostics_explorer::DiagnosticExplorerAgentPlugin,
+        bevy_diagnostics_explorer::DiagnosticExplorerAgentPlugin,
     ))
     .insert_resource(RapierConfiguration {
     gravity: Vec3::ZERO,

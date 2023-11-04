@@ -4,14 +4,17 @@ use noise::{NoiseFn, Perlin};
 
 use crate::{Player, bloc::{BlocPosition, Bloc}};
 
+pub type ChunkPosition = IVec2; // Vec3 because a chunk is full height
 const CHUNK_SIZE: usize = 16;
+
 #[derive(Resource, Default)]
 pub struct World {
     pub map: HashMap<BlocPosition, Bloc>,
     pub seed: u32,
     pub perlin: Perlin,
     pub entities: HashMap<Entity, BlocPosition>,
-    pub collision_map: HashSet<BlocPosition>
+    pub collision_map: HashSet<BlocPosition>,
+    pub generated_chunks: HashSet<ChunkPosition>
 }
 impl World {
     pub fn new(seed: u32) -> Self {
@@ -24,63 +27,105 @@ impl World {
     pub fn get_height_at(&self, x: f64, z: f64) -> f64 {
         return (self.perlin.get([x / (CHUNK_SIZE*8+1) as f64,z / (CHUNK_SIZE*8+1) as f64])*20.).round().abs();
     }
-    pub fn generate(&mut self, 
+    // pub fn generate(&mut self, 
+    //     commands: &mut Commands,
+    //     meshes: &mut ResMut<Assets<Mesh>>,
+    //     asset_server: &Res<AssetServer>,
+    //     materials: &mut ResMut<Assets<StandardMaterial>>,
+    // ) {
+    //     let texture_handle = asset_server.load("minecraft/textures/block/dirt.png");
+    //     let cube = meshes.add(Mesh::from(shape::Cube { size: 1.0 }));
+    //     let material = materials.add(StandardMaterial {
+    //         base_color_texture: Some(texture_handle.clone()),
+    //         // alpha_mode: AlphaMode::Blend,
+    //         // unlit: true,
+    //         ..default()
+    //     });
+    //     let mut entities = Vec::new();
+    //     for (pos, _bloc) in self.map.iter() {
+    //         if is_bloc_at_surface(*pos, &self) {
+    //             if let Some(bloc) = self.map.get(pos) {
+    //                 if bloc.id.is_some() {continue} // Check if already spawned
+    //             }
+    //             let mut bundle = commands.spawn(PbrBundle {
+    //                 mesh: cube.clone(),
+    //                 material: material.clone(),
+    //                 transform: Transform::from_xyz(pos.x as f32, pos.y as f32, pos.z as f32),
+    //                 ..default()
+    //             });
+    //             let entity = bundle
+    //             .insert(bevy_rapier3d::prelude::RigidBody::Fixed)
+    //             .insert(Friction::coefficient(0.0))
+    //             .insert(Restitution::coefficient(0.))
+    //             // .insert(Sleeping {sleeping:false,..default()})
+    //             // .insert(Collider::cuboid(0.5, 0.5, 0.5)) // Cube dimensions
+    //             ;
+    //             entities.push((*pos, entity.id()));
+    //             self.entities.insert(entity.id(), *pos);
+    //         }
+    //     }
+    //     for (pos, entity) in entities {
+    //         self.map.get_mut(&pos).unwrap().id = Some(entity);
+    //     }
+    // }
+    // pub fn setup(&mut self, 
+    //     mut commands: Commands,
+    //     mut meshes: ResMut<Assets<Mesh>>,
+    //     asset_server: Res<AssetServer>,
+    //     mut materials: ResMut<Assets<StandardMaterial>>,
+    //     player_transform: &Transform
+    // ) {
+    //     for x in 0..CHUNK_SIZE*2 {
+    //         for z in 0..CHUNK_SIZE*2 {
+    //             for y in 0..=self.get_height_at(x as f64, z as f64) as i64 {
+    //                 let pos = BlocPosition::new(x as i32, y as i32, z as i32);
+    //                 self.map.insert(pos, Bloc::new(pos, None));
+    //             }
+    //         }
+    //     }
+    //     self.generate(&mut commands, &mut meshes, &asset_server, &mut materials);
+    // }
+    pub fn generate_chunk(&mut self, 
+        cx: i32, cz: i32,
         commands: &mut Commands,
-        meshes: &mut ResMut<Assets<Mesh>>,
-        asset_server: &Res<AssetServer>,
-        materials: &mut ResMut<Assets<StandardMaterial>>,
-    ) {
-        let texture_handle = asset_server.load("minecraft/textures/block/dirt.png");
-        let cube = meshes.add(Mesh::from(shape::Cube { size: 1.0 }));
-        let material = materials.add(StandardMaterial {
-            base_color_texture: Some(texture_handle.clone()),
-            // alpha_mode: AlphaMode::Blend,
-            // unlit: true,
-            ..default()
-        });
-        let mut entities = Vec::new();
-        for (pos, _bloc) in self.map.iter() {
-            if is_bloc_at_surface(*pos, &self) {
-                if let Some(bloc) = self.map.get(pos) {
+        mesh: Handle<Mesh>,
+        material: Handle<StandardMaterial>,
+) {
+    let mix = cx as isize * CHUNK_SIZE as isize;
+    let max = (cx as isize+1) * CHUNK_SIZE as isize;
+    let miz = cz as isize * CHUNK_SIZE as isize;
+    let maz = (cz as isize+1) * CHUNK_SIZE as isize;
+    let mut entities = Vec::new();
+    for x in mix..max {
+        for z in miz..maz {
+            for y in 0..=self.get_height_at(x as f64, z as f64) as i64 {
+                let pos = BlocPosition::new(x as i32, y as i32, z as i32);
+                if let Some(bloc) = self.map.get(&pos) {
                     if bloc.id.is_some() {continue} // Check if already spawned
                 }
-                let mut bundle = commands.spawn(PbrBundle {
-                    mesh: cube.clone(),
+                self.map.insert(pos, Bloc::new(pos, None));
+                if !is_bloc_at_surface(pos, self) {continue}
+                // Bloc is visible, so render it
+                let entity = commands.spawn(PbrBundle {
+                    mesh: mesh.clone(),
                     material: material.clone(),
                     transform: Transform::from_xyz(pos.x as f32, pos.y as f32, pos.z as f32),
                     ..default()
-                });
-                let entity = bundle
+                })
                 .insert(bevy_rapier3d::prelude::RigidBody::Fixed)
                 .insert(Friction::coefficient(0.0))
                 .insert(Restitution::coefficient(0.))
-                // .insert(Sleeping {sleeping:false,..default()})
-                // .insert(Collider::cuboid(0.5, 0.5, 0.5)) // Cube dimensions
+                .id()
                 ;
-                entities.push((*pos, entity.id()));
-                self.entities.insert(entity.id(), *pos);
+                entities.push((pos, entity)); // Push to then add entities to block
+                // Can't do it in one loop because it would be using 2 mut pointers to world :c
             }
-        }
-        for (pos, entity) in entities {
-            self.map.get_mut(&pos).unwrap().id = Some(entity);
         }
     }
-    pub fn setup(&mut self, 
-        mut commands: Commands,
-        mut meshes: ResMut<Assets<Mesh>>,
-        asset_server: Res<AssetServer>,
-        mut materials: ResMut<Assets<StandardMaterial>>,
-        player_transform: &Transform
-    ) {
-        for x in 0..CHUNK_SIZE*2 {
-            for z in 0..CHUNK_SIZE*2 {
-                for y in 0..=self.get_height_at(x as f64, z as f64) as i64 {
-                    let pos = BlocPosition::new(x as i32, y as i32, z as i32);
-                    self.map.insert(pos, Bloc::new(pos, None));
-                }
-            }
-        }
-        self.generate(&mut commands, &mut meshes, &asset_server, &mut materials);
+    for (pos, entity) in entities {
+        self.map.get_mut(&pos).unwrap().id = Some(entity);
+        self.entities.insert(entity, pos);
+    }
     }
 }
 
@@ -91,55 +136,22 @@ pub fn gen_world(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut world: ResMut<World>,
-    player_pos: Query<&Transform, With<Player>>,
+    player_pos: Query<(&Transform,&Player)>,
 ) {
-    let pos = player_pos.single();
-    let mix = pos.translation.x as isize-CHUNK_SIZE as isize;
-    let max = pos.translation.x as isize+CHUNK_SIZE as isize;
-    let miz = pos.translation.z as isize-CHUNK_SIZE as isize;
-    let maz = pos.translation.z as isize+CHUNK_SIZE as isize;
-    for x in mix..max {
-        for z in miz..maz {
-            for y in 0..=world.get_height_at(x as f64, z as f64) as i64 {
-                let pos = BlocPosition::new(x as i32, y as i32, z as i32);
-                world.map.insert(pos, Bloc::new(pos, None));
-            }
-        }
-    }
-
     let texture_handle = asset_server.load("minecraft/textures/block/dirt.png");
     let cube = meshes.add(Mesh::from(shape::Cube { size: 1.0 }));
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(texture_handle.clone()),
-        // alpha_mode: AlphaMode::Blend,
-        // unlit: true,
         ..default()
     });
-    let mut entities = Vec::new();
-    for (pos, _bloc) in world.map.iter() {
-        if is_bloc_at_surface(*pos, &world) {
-            if let Some(bloc) = world.map.get(pos) {
-                if bloc.id.is_some() {continue} // Check if already spawned
+    let (pos, player) = player_pos.single();
+    let (px, pz) = (pos.translation.x as i32 / CHUNK_SIZE as i32, pos.translation.z as i32 / CHUNK_SIZE as i32);
+    for chunk_x in px-player.render_distance..px+player.render_distance {
+        for chunk_z in pz-player.render_distance..pz+player.render_distance {
+            if world.generated_chunks.get(&IVec2::new(chunk_x, chunk_z)).is_none() {
+                world.generate_chunk(chunk_x, chunk_z, &mut commands, cube.clone(), material.clone());
             }
-            let mut bundle = commands.spawn(PbrBundle {
-                mesh: cube.clone(),
-                material: material.clone(),
-                transform: Transform::from_xyz(pos.x as f32, pos.y as f32, pos.z as f32),
-                ..default()
-            });
-            let entity = bundle
-            .insert(bevy_rapier3d::prelude::RigidBody::Fixed)
-            .insert(Friction::coefficient(0.0))
-            .insert(Restitution::coefficient(0.))
-            // .insert(Sleeping {sleeping:false,..default()})
-            // .insert(Collider::cuboid(0.5, 0.5, 0.5)) // Cube dimensions
-            ;
-            entities.push((*pos, entity.id()));
         }
-    }
-    for (pos, entity) in entities {
-        world.map.get_mut(&pos).unwrap().id = Some(entity);
-        world.entities.insert(entity, pos);
     }
 }
 fn is_bloc_at_surface(pos: BlocPosition, world: &World) -> bool {

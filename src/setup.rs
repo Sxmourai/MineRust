@@ -21,10 +21,10 @@ pub fn setup(
 
     
     let (cx,cz) = (5.,5.);
-    let cy = world.get_height_at(cx, cz);
+    let cy = world.get_height_at(cx, cz)+1.;
     println!("Spawning player ({}, {}, {})", cx,cy,cz);
     let transform = Transform::from_xyz(cx as f32, cy as f32, cz as f32);
     spawn_player(&mut commands, transform);
 
-    world.setup(commands, meshes, asset_server, materials, &transform);
+    // world.setup(commands, meshes, asset_server, materials, &transform);
 }

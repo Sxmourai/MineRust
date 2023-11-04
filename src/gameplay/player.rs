@@ -148,7 +148,6 @@ pub fn spawn_player(commands: &mut Commands, pos: Transform) {
     }).insert(CameraTag);
 
 
-
     let _player_id = commands
     .spawn(TransformBundle::from_transform(pos))
     .insert(Collider::cuboid(0.3, 1.75/2., 0.2))
