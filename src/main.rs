@@ -1,14 +1,14 @@
-use bevy::{prelude::*, app::Startup, DefaultPlugins, window::{Window, WindowPosition}, utils::HashMap};
+use bevy::{prelude::*, app::Startup, DefaultPlugins, window::{Window, WindowPosition}};
 pub mod setup;
 pub mod gameplay;
 pub mod world;
 pub mod camera;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_rapier3d::{prelude::{NoUserData, RapierConfiguration}, render::RapierDebugRenderPlugin};
+
+use bevy_rapier3d::prelude::{NoUserData, RapierConfiguration};
 use gameplay::player::*;
 use setup::setup;
-use world::{World, optimise_world, generate_world};
-use bevy_rapier3d::prelude::*;
+use world::{World, optimise_world};
+
 
 fn main() {
     App::new()

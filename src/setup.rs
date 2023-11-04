@@ -1,16 +1,16 @@
 
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::{Velocity, Collider, Restitution, LockedAxes, Friction, Ccd, MassProperties, ExternalForce, Damping, ExternalImpulse, KinematicCharacterController, RigidBody, CollisionGroups, Group};
-use noise::NoiseFn;
 
-use crate::{world::{World, generate_world, BlocPosition}, gameplay::player::{PlayerVelocity, Player, spawn_player}, camera::CameraTag};
+
+
+use crate::{world::World, gameplay::player::spawn_player};
 
 
 pub fn setup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
+    meshes: ResMut<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    materials: ResMut<Assets<StandardMaterial>>,
     mut world: ResMut<World>,
 ) {
     // Sun

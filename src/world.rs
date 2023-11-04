@@ -1,5 +1,5 @@
 use bevy::{prelude::*, utils::{HashMap, HashSet}};
-use bevy_rapier3d::{prelude::{Velocity, Collider, Friction, Sleeping, Restitution, KinematicCharacterController}, rapier::prelude::ColliderBuilder};
+use bevy_rapier3d::prelude::{Collider, Friction, Restitution};
 use noise::{NoiseFn, Perlin};
 
 use crate::Player;
@@ -38,7 +38,7 @@ impl World {
         return (self.perlin.get([x / (CHUNK_SIZE*8+1) as f64,z / (CHUNK_SIZE*8+1) as f64])*20.).round().abs();
     }
     pub fn generate(&mut self, 
-        player_transform: &Transform,
+        _player_transform: &Transform,
         commands: &mut Commands,
         meshes: &mut ResMut<Assets<Mesh>>,
         asset_server: &Res<AssetServer>,
@@ -102,10 +102,10 @@ const CHUNK_SIZE: usize = 32;
 const CHUNKS: usize = 4;
 
 pub fn generate_world(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
+    commands: Commands,
+    meshes: ResMut<Assets<Mesh>>,
     asset_server: Res<AssetServer>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    materials: ResMut<Assets<StandardMaterial>>,
     mut world: ResMut<World>,
     camera_query: Query<&Transform, With<Player>>,
 ) {
@@ -141,8 +141,8 @@ pub fn is_bloc_visible(pos: BlocPosition, world: &World, view_projection_matrix:
 }
 pub fn optimise_world(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    _meshes: ResMut<Assets<Mesh>>,
+    _materials: ResMut<Assets<StandardMaterial>>,
     mut world: ResMut<World>,
     player: Query<&Transform, With<Player>>,
 ) {

@@ -1,7 +1,7 @@
-use std::sync::Mutex;
 
-use bevy::{prelude::*, input::{keyboard, mouse::MouseMotion}, time::Time, window::{CursorMoved, CursorGrabMode, WindowFocused, PrimaryWindow}};
-use bevy_rapier3d::{prelude::{Velocity, RigidBody, Collider, ExternalImpulse, ExternalForce, RapierConfiguration, KinematicCharacterController, LockedAxes, Ccd, Damping, Restitution, Friction}, rapier::prelude::ColliderSet, na::ComplexField};
+
+use bevy::{prelude::*, input::mouse::MouseMotion, time::Time, window::{CursorGrabMode, PrimaryWindow}};
+use bevy_rapier3d::prelude::{Velocity, RigidBody, Collider, ExternalImpulse, ExternalForce, RapierConfiguration, LockedAxes, Ccd, Damping, Restitution, Friction};
 use crate::{world::{World, BlocPosition}, camera::CameraTag};
 
 #[derive(Resource)]
@@ -44,7 +44,7 @@ pub fn player_movement(
     time: ResMut<Time>,
     mut motion_evr: EventReader<MouseMotion>,
     mut timer: ResMut<JumpTimer>,
-    physic_config: Res<RapierConfiguration>,
+    _physic_config: Res<RapierConfiguration>,
 ) {
     let mut camera = camera_query.single_mut();
     let (mut vel,mut player, pos) = player_query.single_mut();
@@ -138,7 +138,7 @@ pub fn cursor_grab_system(
 }
 
 pub fn spawn_player(commands: &mut Commands, pos: Transform) {
-    let player_height = 1.75;
+    let _player_height = 1.75;
     commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(0., 0., 0.).looking_at(Vec3::new(20., 5., 20.), Vec3::Y),
         projection: Projection::Perspective(PerspectiveProjection { fov: 89., ..default()}),
