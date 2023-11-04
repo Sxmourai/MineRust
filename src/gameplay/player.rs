@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use bevy::{prelude::*, input::{keyboard, mouse::MouseMotion}, time::Time, window::{CursorMoved, CursorGrabMode, WindowFocused, PrimaryWindow}};
-use bevy_rapier3d::{prelude::{Velocity, RigidBody, Collider, ExternalImpulse, ExternalForce, RapierConfiguration, KinematicCharacterController}, rapier::prelude::ColliderSet, na::ComplexField};
+use bevy_rapier3d::{prelude::{Velocity, RigidBody, Collider, ExternalImpulse, ExternalForce, RapierConfiguration, KinematicCharacterController, LockedAxes, Ccd, Damping, Restitution, Friction}, rapier::prelude::ColliderSet, na::ComplexField};
 use crate::{world::{World, BlocPosition}, camera::CameraTag};
 
 #[derive(Resource)]
@@ -135,4 +135,45 @@ pub fn cursor_grab_system(
         window.cursor.grab_mode = CursorGrabMode::None;
         window.cursor.visible = true;
     }
+}
+
+pub fn spawn_player(commands: &mut Commands, pos: Transform) {
+    let player_height = 1.75;
+    commands.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(0., 0., 0.).looking_at(Vec3::new(20., 5., 20.), Vec3::Y),
+        projection: Projection::Perspective(PerspectiveProjection { fov: 89., ..default()}),
+        ..default()
+    }).insert(CameraTag);
+
+
+
+    let _player_id = commands
+    .spawn(TransformBundle::from_transform(pos))
+    .insert(Collider::cuboid(0.3, 1.75/2., 0.2))
+    // TODO Collision groups
+    // .insert(KinematicCharacterController {
+    //     offset: bevy_rapier3d::prelude::CharacterLength::Absolute(1.0),
+    //     ..default()
+    // })
+    .insert(RigidBody::Dynamic)
+    .insert(Friction::coefficient(0.0))
+    .insert(Restitution::coefficient(0.))
+    .insert(Damping {
+        linear_damping: 0.0,
+        ..default()
+    })
+    .insert(LockedAxes::ROTATION_LOCKED)
+    .insert(Player::new())
+    .insert(Ccd::enabled())
+    .insert(ExternalImpulse {
+        impulse: Vec3::Y * 0.,
+        ..default()
+    })
+    .insert(ExternalForce {
+        force: Vec3::ZERO,
+        ..default()
+    })
+    .insert(Velocity::default())
+    .id()
+    ;
 }

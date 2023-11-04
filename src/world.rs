@@ -38,7 +38,7 @@ impl World {
         return (self.perlin.get([x / (CHUNK_SIZE*8+1) as f64,z / (CHUNK_SIZE*8+1) as f64])*20.).round().abs();
     }
     pub fn generate(&mut self, 
-        view_projection_matrix: Mat4,
+        player_transform: &Transform,
         commands: &mut Commands,
         meshes: &mut ResMut<Assets<Mesh>>,
         asset_server: &Res<AssetServer>,
@@ -84,7 +84,7 @@ impl World {
         mut meshes: ResMut<Assets<Mesh>>,
         asset_server: Res<AssetServer>,
         mut materials: ResMut<Assets<StandardMaterial>>,
-        camera_transform: &Transform, camera: &Camera
+        player_transform: &Transform
     ) {
         for x in 0..CHUNK_SIZE*CHUNKS {
             for z in 0..CHUNK_SIZE*CHUNKS {
@@ -94,8 +94,7 @@ impl World {
                 }
             }
         }
-        let view_projection_matrix = camera.projection_matrix() * camera_transform.compute_matrix();
-        self.generate(view_projection_matrix, &mut commands, &mut meshes, &asset_server, &mut materials);
+        self.generate(player_transform, &mut commands, &mut meshes, &asset_server, &mut materials);
     }
 }
 
@@ -108,10 +107,10 @@ pub fn generate_world(
     asset_server: Res<AssetServer>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut world: ResMut<World>,
-    camera_query: Query<(&Transform, &Camera)>,
+    camera_query: Query<&Transform, With<Player>>,
 ) {
-    let (camera_transform, camera) = camera_query.single();
-    world.setup(commands, meshes, asset_server, materials, camera_transform, camera);
+    let pos = camera_query.single();
+    world.setup(commands, meshes, asset_server, materials, pos);
 }
 fn is_bloc_at_surface(pos: BlocPosition, world: &World) -> bool {
     let (x,y,z) = (pos.x, pos.y, pos.z);
