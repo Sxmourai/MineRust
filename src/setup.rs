@@ -1,10 +1,5 @@
-
 use bevy::prelude::*;
-
-
-
 use crate::{world::World, gameplay::player::spawn_player};
-
 
 pub fn setup(
     mut commands: Commands,
@@ -30,5 +25,6 @@ pub fn setup(
     println!("Spawning player ({}, {}, {})", cx,cy,cz);
     let transform = Transform::from_xyz(cx as f32, cy as f32, cz as f32);
     spawn_player(&mut commands, transform);
+
     world.setup(commands, meshes, asset_server, materials, &transform);
 }

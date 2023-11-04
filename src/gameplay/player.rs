@@ -2,7 +2,7 @@
 
 use bevy::{prelude::*, input::mouse::MouseMotion, time::Time, window::{CursorGrabMode, PrimaryWindow}};
 use bevy_rapier3d::prelude::{Velocity, RigidBody, Collider, ExternalImpulse, ExternalForce, RapierConfiguration, LockedAxes, Ccd, Damping, Restitution, Friction};
-use crate::{world::{World, BlocPosition}, camera::CameraTag};
+use crate::{world::World, camera::CameraTag, bloc::BlocPosition};
 
 #[derive(Resource)]
 pub struct JumpTimer(pub Timer);

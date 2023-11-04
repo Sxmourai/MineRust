@@ -2,22 +2,8 @@ use bevy::{prelude::*, utils::{HashMap, HashSet}};
 use bevy_rapier3d::prelude::{Collider, Friction, Restitution};
 use noise::{NoiseFn, Perlin};
 
-use crate::Player;
+use crate::{Player, bloc::{BlocPosition, Bloc}};
 
-pub type BlocPosition = IVec3;
-#[derive(Component, Debug)]
-pub struct Bloc {
-    pub pos: BlocPosition,
-    pub id: Option<Entity>,
-}
-impl Bloc {
-    pub fn new(pos: BlocPosition, id: Option<Entity>) -> Self {
-        Self { 
-            pos,
-            id,
-        }
-    }
-}
 #[derive(Resource, Default)]
 pub struct World {
     pub map: HashMap<BlocPosition, Bloc>,

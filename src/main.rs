@@ -3,6 +3,7 @@ pub mod setup;
 pub mod gameplay;
 pub mod world;
 pub mod camera;
+pub mod bloc;
 
 use bevy_rapier3d::prelude::{NoUserData, RapierConfiguration};
 use gameplay::player::*;
@@ -51,7 +52,6 @@ fn main() {
     // .add_systems(Startup, generate_world.after(setup)) // Reput .after (playermovement)
     .add_systems(Update,optimise_world.after(player_movement))
     .add_systems(Update,player_on_ground.before(player_movement))
-    
     .insert_resource(World::new(1))
     .insert_resource(JumpTimer(Timer::from_seconds(0.3, TimerMode::Once)))
     .run();
