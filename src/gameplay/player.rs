@@ -57,7 +57,7 @@ pub fn player_movement(
     right = right.normalize();
     let mut direction = Vec3::ZERO;
     
-    player.vel.gravity += Vec3::NEG_Y * 0.5;
+    player.vel.gravity += Vec3::NEG_Y * 1.5;
     if player.on_ground {
         player.vel.gravity = Vec3::ZERO;
     }
@@ -76,7 +76,7 @@ pub fn player_movement(
     timer.0.tick(time.delta());
     if keys.pressed(KeyCode::Space) && player.on_ground { // Jump
         if timer.0.finished() {
-            player.vel.gravity = Vec3::Y*6.1; 
+            player.vel.gravity = Vec3::Y*7.5; 
             timer.0.reset();
         }
     }
@@ -112,7 +112,7 @@ pub fn player_on_ground(
 ) {
     let (mut player, pos) = player.single_mut();
     let (x,y,z) = (pos.translation.x,pos.translation.y,pos.translation.z);
-    let y = if y - y.floor() < 0.375 { // y - y.floor() gets the decimal part (1.2 - 1 = 0.2)
+    let y = if y - y.floor() < 0.38 { // y - y.floor() gets the decimal part (1.2 - 1 = 0.2)
         y.floor()
     } else {y.ceil()} as i32;
     player.on_ground = world.map.contains_key(&BlocPosition::new(x as i32,y-1,z as i32));
@@ -177,4 +177,13 @@ pub fn spawn_player(commands: &mut Commands, pos: Transform) {
     .insert(Velocity::default())
     .id()
     ;
+}
+
+pub fn text_update(mut texts: Query<&mut Text>, player: Query<&Transform, With<Player>>) {
+    let pos = player.single().translation;
+    for mut text in texts.iter_mut() {
+        if text.sections[0].value.starts_with("Coords: ") {
+            text.sections[0].value = format!("Coords: {} = {:?}", pos, (pos.x as i32, pos.y as i32, pos.z as i32));
+        }
+    }
 }

@@ -27,10 +27,8 @@ fn main() {
 //     .add_plugins(bevy_editor_pls::prelude::EditorPlugin::default())
     .add_plugins(bevy_rapier3d::prelude::RapierPhysicsPlugin::<NoUserData>::default())
     .add_plugins((
-        // it is fast unless debug rendering it on, it is too many lines so im only going to show the
-        // AABB not the acctual shape for now
         RapierDebugRenderPlugin {
-            mode: DebugRenderMode::empty(),
+            mode: DebugRenderMode::all(),
             ..Default::default()
         },
         bevy::diagnostic::FrameTimeDiagnosticsPlugin,
@@ -50,9 +48,10 @@ fn main() {
     .add_systems(Startup, setup)
     .add_systems(Update, cursor_grab_system)
     .add_systems(Update, player_movement)
-    // .add_systems(Startup, generate_world.after(setup)) // Reput .after (playermovement)
     .add_systems(Update,gen_world.after(player_movement))
+    .add_systems(Update, optimise_world.after(gen_world))
     .add_systems(Update,player_on_ground.before(player_movement))
+    .add_systems(Update,text_update.after(player_movement))
     .insert_resource(World::new(1))
     .insert_resource(JumpTimer(Timer::from_seconds(0.3, TimerMode::Once)))
     .run();
