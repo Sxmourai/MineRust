@@ -2,7 +2,10 @@
 
 use bevy::{prelude::*, input::mouse::MouseMotion, time::Time, window::{CursorGrabMode, PrimaryWindow}};
 use bevy_rapier3d::prelude::{Velocity, RigidBody, Collider, ExternalImpulse, ExternalForce, RapierConfiguration, LockedAxes, Ccd, Damping, Restitution, Friction};
+use bevy_tnua::{TnuaRapier3dIOBundle, prelude::TnuaControllerBundle, TnuaRapier3dSensorShape};
 use crate::{world::World, camera::CameraTag, bloc::BlocPosition};
+
+use super::mobs::Living;
 
 #[derive(Resource)]
 pub struct JumpTimer(pub Timer);
@@ -76,7 +79,7 @@ pub fn player_movement(
     timer.0.tick(time.delta());
     if keys.pressed(KeyCode::Space) && player.on_ground { // Jump
         if timer.0.finished() {
-            player.vel.gravity = Vec3::Y*7.5; 
+            player.vel.gravity = Vec3::Y*15.;
             timer.0.reset();
         }
     }
@@ -141,40 +144,35 @@ pub fn cursor_grab_system(
 
 pub fn spawn_player(commands: &mut Commands, pos: Transform) {
     let _player_height = 1.75;
-    commands.spawn(Camera3dBundle {
+    commands.spawn((Camera3dBundle {
         transform: Transform::from_xyz(0., 0., 0.).looking_at(Vec3::new(20., 5., 20.), Vec3::Y),
         projection: Projection::Perspective(PerspectiveProjection { fov: 89., ..default()}),
         ..default()
-    }).insert(CameraTag);
+    },CameraTag));
 
 
-    let _player_id = commands
-    .spawn(TransformBundle::from_transform(pos))
-    .insert(Collider::cuboid(0.3, 1.75/2., 0.2))
-    // TODO Collision groups
-    // .insert(KinematicCharacterController {
-    //     offset: bevy_rapier3d::prelude::CharacterLength::Absolute(1.0),
-    //     ..default()
-    // })
-    .insert(RigidBody::Dynamic)
-    .insert(Friction::coefficient(0.0))
-    .insert(Restitution::coefficient(0.))
-    .insert(Damping {
-        linear_damping: 0.0,
-        ..default()
-    })
-    .insert(LockedAxes::ROTATION_LOCKED)
-    .insert(Player::new())
-    .insert(Ccd::enabled())
-    .insert(ExternalImpulse {
-        impulse: Vec3::Y * 0.,
-        ..default()
-    })
-    .insert(ExternalForce {
-        force: Vec3::ZERO,
-        ..default()
-    })
-    .insert(Velocity::default())
+    let _player_id = commands.spawn((
+        TransformBundle::from_transform(pos),
+        Collider::cuboid(0.3, 1.75/2., 0.2),
+        RigidBody::Dynamic,
+        Friction::coefficient(0.0),
+        Restitution::coefficient(0.),
+        Damping {
+            linear_damping: 0.0,
+            ..default()
+        },
+        LockedAxes::ROTATION_LOCKED,
+        Player::new(),
+        Ccd::enabled(),
+        ExternalImpulse {
+            impulse: Vec3::Y * 0.,
+            ..default()
+        },
+        Living,
+        TnuaControllerBundle::default(),
+        TnuaRapier3dSensorShape(Collider::cuboid(0.25, 1.7/2., 0.15)), // Make it smaller (https://docs.rs/bevy-tnua/latest/bevy_tnua/)
+        TnuaRapier3dIOBundle::default(),// this one depends on the physics backend
+    ))
     .id()
     ;
 }

@@ -2,7 +2,7 @@ use bevy::{prelude::*, utils::{HashMap, HashSet}};
 use bevy_rapier3d::prelude::{Collider, Friction, Restitution};
 use noise::{NoiseFn, Perlin};
 
-use crate::{Player, bloc::{BlocPosition, Bloc}};
+use crate::{Player, bloc::{BlocPosition, Bloc}, gameplay::mobs::Living};
 
 pub type ChunkPosition = IVec2; // Vec3 because a chunk is full height
 const CHUNK_SIZE: usize = 16;
@@ -79,7 +79,7 @@ pub fn gen_world(
                             if !is_bloc_at_surface(pos, &world) {continue}
                             // Bloc is visible, so render it
                             
-                            let entity = cubes.push((PbrBundle {
+                            cubes.push((PbrBundle {
                                 mesh: cube.clone(),
                                 material: material.clone(),
                                 transform: Transform::from_xyz(pos.x as f32, pos.y as f32, pos.z as f32),
@@ -107,6 +107,7 @@ pub fn gen_world(
         world.entities.insert(entity, pos);
     }
 }
+
 fn is_bloc_at_surface(pos: BlocPosition, world: &World) -> bool {
     let (x,y,z) = (pos.x, pos.y, pos.z);
     let neighbors = [
@@ -139,22 +140,26 @@ pub fn optimise_world(
     _meshes: ResMut<Assets<Mesh>>,
     _materials: ResMut<Assets<StandardMaterial>>,
     mut world: ResMut<World>,
-    player: Query<&Transform, With<Player>>,
+    livings: Query<&Transform, With<Living>>,
 ) {
-    let (px,py,pz) = {let pos = player.single().translation; (pos.x as i32, pos.y as i32, pos.z as i32)};
-    let mut pn = [(0,0,0); 9*4];
-    for y in 0..4 {
-        for x in 0..3 {
-            for z in 0..3 {
-                pn[y*9 + x*3 + z] = (px+x as i32 - 1, py+y as i32 - 1, pz+z as i32 - 1);
-                // println!("{} -> {:?}", y*9 + x*3 + z, (x as i32 - 1, y as i32 - 1, z as i32 - 1))
+    let mut livings_neighbors = Vec::new();
+    for living in livings.iter() {
+        let (px,py,pz) = {let pos = living.translation; (pos.x as i32, pos.y as i32, pos.z as i32)};
+        
+        for y in 0..4 {
+            for x in 0..3 {
+                for z in 0..3 {
+                    livings_neighbors.push((px+x as i32 - 1, py+y as i32 - 1, pz+z as i32 - 1));
+                    // println!("{} -> {:?}", y*9 + x*3 + z, (x as i32 - 1, y as i32 - 1, z as i32 - 1))
+                }
             }
         }
     }
+    
     let mut to_remove = Vec::new();
     for pos in world.collision_map.iter() {
         let p = (pos.x, pos.y, pos.z);
-        if !(pn.contains(&p)) {
+        if !(livings_neighbors.contains(&p)) {
             to_remove.push(pos.clone())
         }
     }
@@ -170,11 +175,11 @@ pub fn optimise_world(
             println!("Bloc at {:?} isn't in map", p);
         }
     }
-    for (x,y,z) in pn {
+    for (x,y,z) in livings_neighbors {
         let pos = IVec3::new(x,y,z);
         
         if let Some(bloc) = world.map.get(&pos) { // Not sure there's a bloc, if the player is in the air
-        if let Some(entity) = bloc.id { // Not sure he has an entity, if he isn't at surface he isn't rendered
+            if let Some(entity) = bloc.id { // Not sure he has an entity, if he isn't at surface he isn't rendered
                 world.collision_map.insert(pos);
                 commands.get_entity(entity).unwrap()
                 .insert(Collider::cuboid(0.5, 0.5, 0.5));

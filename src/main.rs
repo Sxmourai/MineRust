@@ -6,7 +6,7 @@ pub mod camera;
 pub mod bloc;
 
 use bevy_rapier3d::{prelude::{NoUserData, RapierConfiguration}, render::{RapierDebugRenderPlugin, DebugRenderMode}};
-use gameplay::player::*;
+use gameplay::{player::*, mobs::{SpawnTimer, spawn_animals, animal_live}};
 use setup::setup;
 use world::{World, optimise_world, gen_world};
 
@@ -52,7 +52,10 @@ fn main() {
     .add_systems(Update, optimise_world.after(gen_world))
     .add_systems(Update,player_on_ground.before(player_movement))
     .add_systems(Update,text_update.after(player_movement))
+    .add_systems(Update,animal_live)
+    .add_systems(Update,spawn_animals)
     .insert_resource(World::new(1))
     .insert_resource(JumpTimer(Timer::from_seconds(0.3, TimerMode::Once)))
+    .insert_resource(SpawnTimer(Timer::from_seconds(3., TimerMode::Once)))
     .run();
 }
