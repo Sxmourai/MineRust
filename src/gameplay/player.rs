@@ -2,7 +2,7 @@
 
 use bevy::{prelude::*, input::mouse::MouseMotion, time::Time, window::{CursorGrabMode, PrimaryWindow}};
 use bevy_rapier3d::prelude::{Velocity, RigidBody, Collider, ExternalImpulse, ExternalForce, RapierConfiguration, LockedAxes, Ccd, Damping, Restitution, Friction};
-use bevy_tnua::{TnuaRapier3dIOBundle, prelude::TnuaControllerBundle, TnuaRapier3dSensorShape};
+use bevy_tnua::{TnuaRapier3dIOBundle, prelude::{TnuaControllerBundle, TnuaController, TnuaBuiltinWalk, TnuaBuiltinJump}, TnuaRapier3dSensorShape};
 use crate::{world::World, camera::CameraTag, bloc::BlocPosition};
 
 use super::mobs::Living;
@@ -44,7 +44,7 @@ pub struct PlayerVelocity {
 pub fn player_movement(
     primary_window: Query<&mut Window, With<PrimaryWindow>>,
     mut camera_query: Query<&mut Transform, With<CameraTag>>,
-    mut player_query: Query<(&mut Velocity, &mut Player, &Transform), Without<CameraTag>>,
+    mut player_query: Query<(&mut TnuaController, &mut Player, &Transform), Without<CameraTag>>,
     keys: Res<Input<KeyCode>>,
     time: ResMut<Time>,
     mut motion_evr: EventReader<MouseMotion>,
@@ -52,14 +52,13 @@ pub fn player_movement(
     _physic_config: Res<RapierConfiguration>,
 ) {
     let mut camera = camera_query.single_mut();
-    let (mut vel,mut player, pos) = player_query.single_mut();
+    let (mut controller,mut player, pos) = player_query.single_mut();
     let mut forward = camera.rotation.mul_vec3(Vec3::NEG_Z);
     let mut right = camera.rotation.mul_vec3(Vec3::NEG_X);
     forward.y = 0.;right.y = 0.;
     forward = forward.normalize();
     right = right.normalize();
     let mut direction = Vec3::ZERO;
-    
     player.vel.gravity += Vec3::NEG_Y * 1.5;
     if player.on_ground {
         player.vel.gravity = Vec3::ZERO;
@@ -76,20 +75,35 @@ pub fn player_movement(
     if keys.pressed(KeyCode::D) {
         direction -= right*player.speed;
     }
-    timer.0.tick(time.delta());
-    if keys.pressed(KeyCode::Space) && player.on_ground { // Jump
-        if timer.0.finished() {
-            player.vel.gravity = Vec3::Y*15.;
-            timer.0.reset();
-        }
-    }
-    if keys.pressed(KeyCode::ShiftLeft) { //TODO Sneak
-    }
-    if direction.length_squared() > 0.0 {
-        direction = direction.normalize();
-    }
+    controller.basis(TnuaBuiltinWalk {
+        desired_velocity: direction * 10.0,
+        desired_forward: direction,
+        float_height: 0.9,
+        ..default()
+    });
+    if keys.pressed(KeyCode::Space) {
+        println!("AA");
+        controller.action(TnuaBuiltinJump {
+            // The full height of the jump, if the player does not release the button:
+            height: 4.0,
+            shorten_extra_gravity: 0.0,
+            allow_in_air: true,
+            // input_buffer_time: 0.3,
 
-    vel.linvel = direction * player.max_speed + player.vel.gravity;
+            // TnuaBuiltinJump too has other fields that can be configured:
+            ..Default::default()
+        });
+        println!("{:?}", controller.action_flow_status())
+    }
+    // timer.0.tick(time.delta());
+    // if keys.pressed(KeyCode::Space) && player.on_ground { // Jump
+    //     if timer.0.finished() {
+    //         player.vel.gravity = Vec3::Y*15.;
+    //         timer.0.reset();
+    //     }
+    // }
+
+    // vel.linvel = direction * player.max_speed + player.vel.gravity;
     camera.translation = pos.translation+Vec3::Y*player.height;
     let window = primary_window.single();
     for ev in motion_evr.iter() {
@@ -155,22 +169,22 @@ pub fn spawn_player(commands: &mut Commands, pos: Transform) {
         TransformBundle::from_transform(pos),
         Collider::cuboid(0.3, 1.75/2., 0.2),
         RigidBody::Dynamic,
-        Friction::coefficient(0.0),
-        Restitution::coefficient(0.),
-        Damping {
-            linear_damping: 0.0,
-            ..default()
-        },
+        // Friction::coefficient(0.0),
+        // Restitution::coefficient(0.),
+        // Damping {
+        //     linear_damping: 0.0,
+        //     ..default()
+        // },
         LockedAxes::ROTATION_LOCKED,
         Player::new(),
-        Ccd::enabled(),
+        // Ccd::enabled(),
         ExternalImpulse {
             impulse: Vec3::Y * 0.,
             ..default()
         },
         Living,
         TnuaControllerBundle::default(),
-        TnuaRapier3dSensorShape(Collider::cuboid(0.25, 1.7/2., 0.15)), // Make it smaller (https://docs.rs/bevy-tnua/latest/bevy_tnua/)
+        // TnuaRapier3dSensorShape(Collider::cuboid(0.25, 1.7/2., 0.15)), // Make it smaller (https://docs.rs/bevy-tnua/latest/bevy_tnua/)
         TnuaRapier3dIOBundle::default(),// this one depends on the physics backend
     ))
     .id()

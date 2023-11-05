@@ -6,6 +6,7 @@ pub mod camera;
 pub mod bloc;
 
 use bevy_rapier3d::{prelude::{NoUserData, RapierConfiguration}, render::{RapierDebugRenderPlugin, DebugRenderMode}};
+use bevy_tnua::{prelude::TnuaControllerPlugin, TnuaRapier3dPlugin};
 use gameplay::{player::*, mobs::{SpawnTimer, spawn_animals, animal_live}};
 use setup::setup;
 use world::{World, optimise_world, gen_world};
@@ -34,6 +35,7 @@ fn main() {
         bevy::diagnostic::FrameTimeDiagnosticsPlugin,
         bevy::diagnostic::EntityCountDiagnosticsPlugin,
         bevy_diagnostics_explorer::DiagnosticExplorerAgentPlugin,
+        TnuaControllerPlugin,TnuaRapier3dPlugin,
     ))
     .insert_resource(RapierConfiguration {
     gravity: Vec3::ZERO,
@@ -50,7 +52,7 @@ fn main() {
     .add_systems(Update, player_movement)
     .add_systems(Update,gen_world.after(player_movement))
     .add_systems(Update, optimise_world.after(gen_world))
-    .add_systems(Update,player_on_ground.before(player_movement))
+    // .add_systems(Update,player_on_ground.before(player_movement))
     .add_systems(Update,text_update.after(player_movement))
     .add_systems(Update,animal_live)
     .add_systems(Update,spawn_animals)
